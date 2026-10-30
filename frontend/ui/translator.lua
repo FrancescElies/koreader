@@ -757,9 +757,47 @@ function Translator:_showTranslation(text, detailed_view, source_lang, target_la
     local text_all = table.concat(output, "\n")
 
     local textviewer, height, buttons_table
+    buttons_table = buttons_table or {}
+    table.insert(buttons_table, {
+        {
+            text_func = function()
+                return T(_("Translate to: %1"), self:getLanguageName(self:getTargetLanguage(), ""))
+            end,
+            callback = function()
+                local InputDialog = require("ui/widget/inputdialog")
+                local input_dialog
+                input_dialog = InputDialog:new{
+                    title = _("Enter target language code (e.g. fr, en)"),
+                    input = self:getTargetLanguage(),
+                    input_type = "text",
+                    buttons = {
+                        {
+                            {
+                                text = _("Cancel"),
+                                callback = function() UIManager:close(input_dialog) end,
+                            },
+                            {
+                                text = _("OK"),
+                                callback = function()
+                                    local lang = input_dialog:getInputText()
+                                    if lang and lang ~= "" then
+                                        G_reader_settings:saveSetting("translator_to_language", lang)
+                                    end
+                                    UIManager:close(input_dialog)
+                                    UIManager:close(textviewer)
+                                    self:showTranslation(text, detailed_view, source_lang, lang, ui_highlight, index)
+                                end,
+                            },
+                        },
+                    },
+                }
+                UIManager:show(input_dialog)
+                input_dialog:onShowKeyboard()
+            end,
+        },
+    })
     if detailed_view then
         height = math.floor(Screen:getHeight() * 0.8)
-        buttons_table = {}
         if ui_highlight then
             local function save_note(note_text)
                 UIManager:close(textviewer)
