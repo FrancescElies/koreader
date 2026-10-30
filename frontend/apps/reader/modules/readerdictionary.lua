@@ -1666,12 +1666,14 @@ function ReaderDictionary:updateDownloadDictItemTable()
     local item_table = {}
     for _, dict in ipairs(self.dl_dict_list.dicts) do
         if self.dl_dict_list.filter == nil or self.dl_dict_list.filter == (dict.lang_in == dict.lang_out) then
+        if not self.dl_dict_list.search_filter or self.dl_dict_list.search_filter == "" or dict.name:lower():find(self.dl_dict_list.search_filter:lower(), 1, true) then
             table.insert(item_table, {
                 text = dict.name,
                 mandatory = dict.entries,
                 dict = dict,
             })
         end
+    end
     end
     local title = T(_("Available dictionaries (%1)"), #item_table)
     local subtitle = T(_("Language: %1"), self.dl_dict_list.lang)
@@ -1682,16 +1684,37 @@ function ReaderDictionary:updateDownloadDictItemTable()
 end
 
 function ReaderDictionary:filterDownloadDict()
+    local InputDialog = require("ui/widget/inputdialog")
     UIManager:show(ButtonSelector:new{
         current_value = self.dl_dict_list.filter,
         values = {
             { _("all"), nil },
             { self.dl_dict_list.lang, true },
             { _("bilingual"), false },
+            { _("Search…"), "search" },
         },
         callback = function(value)
-            self.dl_dict_list.filter = value
-            self:updateDownloadDictItemTable()
+            if value == "search" then
+                local dlg
+                dlg = InputDialog:new{
+                    title = _("Search dictionaries"),
+                    input = self.dl_dict_list.search_filter or "",
+                    input_type = "text",
+                    buttons = {
+                        { { text = _("Cancel"), callback = function() UIManager:close(dlg) end },
+                          { text = _("OK"), callback = function()
+                              self.dl_dict_list.search_filter = dlg:getInputText()
+                              UIManager:close(dlg)
+                              self:updateDownloadDictItemTable()
+                          end } },
+                    },
+                }
+                UIManager:show(dlg)
+                dlg:onShowKeyboard()
+            else
+                self.dl_dict_list.filter = value
+                self:updateDownloadDictItemTable()
+            end
         end,
     })
 end
